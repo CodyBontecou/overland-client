@@ -922,6 +922,17 @@
       return formatTime(isoString);
     }
 
+    // Parse motion field (API returns JSON string)
+    function parseMotion(motion) {
+      if (!motion) return [];
+      if (Array.isArray(motion)) return motion;
+      try {
+        return JSON.parse(motion);
+      } catch {
+        return [];
+      }
+    }
+
     // Fetch latest location
     async function fetchLatestLocation() {
       try {
@@ -977,6 +988,7 @@
       }
 
       const { latitude, longitude, timestamp, altitude, speed, batteryLevel, motion } = location;
+      const motionArray = parseMotion(motion);
 
       heroSection.innerHTML = `
         <div class="hero-label">
@@ -1016,10 +1028,10 @@
               <span class="meta-value">${Math.round(batteryLevel * 100)}%</span>
             </div>
           ` : ''}
-          ${motion && motion.length ? `
+          ${motionArray.length ? `
             <div class="meta-item">
               <span class="meta-label">Motion</span>
-              <span class="meta-value">${motion.join(', ')}</span>
+              <span class="meta-value">${motionArray.join(', ')}</span>
             </div>
           ` : ''}
         </div>
@@ -1059,7 +1071,7 @@
               </div>
               <div class="location-badges">
                 ${loc.speed != null ? `<span class="badge">${(loc.speed * 3.6).toFixed(0)} km/h</span>` : ''}
-                ${loc.motion && loc.motion.length ? `<span class="badge badge-motion">${loc.motion[0]}</span>` : ''}
+                ${parseMotion(loc.motion).length ? `<span class="badge badge-motion">${parseMotion(loc.motion)[0]}</span>` : ''}
               </div>
               <span class="location-arrow">→</span>
             </div>
@@ -1156,10 +1168,10 @@
                   <span class="detail-value">${loc.heading.toFixed(0)}°</span>
                 </div>
               ` : ''}
-              ${loc.motion && loc.motion.length ? `
+              ${parseMotion(loc.motion).length ? `
                 <div class="detail-item">
                   <span class="detail-label">Motion States</span>
-                  <span class="detail-value">${loc.motion.join(', ')}</span>
+                  <span class="detail-value">${parseMotion(loc.motion).join(', ')}</span>
                 </div>
               ` : ''}
             </div>
