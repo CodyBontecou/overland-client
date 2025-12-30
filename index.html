@@ -731,6 +731,174 @@
       color: var(--terracotta);
     }
 
+    /* Auth UI */
+    .auth-container {
+      position: absolute;
+      top: 1rem;
+      right: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--forest);
+    }
+
+    .user-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--ink);
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-small {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.65rem;
+    }
+
+    .btn-login {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--ink);
+      color: var(--parchment);
+      border-color: var(--ink);
+    }
+
+    .btn-login:hover {
+      background: var(--forest);
+      border-color: var(--forest);
+    }
+
+    .btn-login::before {
+      display: none;
+    }
+
+    .github-icon {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    /* Token Management */
+    .token-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .token-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      background: var(--parchment-dark);
+      border-radius: 4px;
+    }
+
+    .token-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .token-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--forest);
+      font-weight: 500;
+    }
+
+    .token-meta {
+      font-size: 0.7rem;
+      color: var(--ink-light);
+    }
+
+    .token-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      background: var(--ink);
+      color: var(--parchment);
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      word-break: break-all;
+      margin: 1rem 0;
+    }
+
+    .token-warning {
+      background: rgba(196, 90, 59, 0.1);
+      border: 1px solid var(--terracotta);
+      padding: 0.75rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: var(--terracotta);
+      margin-bottom: 1rem;
+    }
+
+    .btn-danger {
+      border-color: var(--terracotta);
+      color: var(--terracotta);
+    }
+
+    .btn-danger::before {
+      background: var(--terracotta);
+    }
+
+    .create-token-form {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .create-token-form input {
+      flex: 1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      padding: 0.6rem 0.8rem;
+      border: 1px solid rgba(45, 90, 71, 0.25);
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.6);
+      color: var(--ink);
+    }
+
+    .create-token-form input:focus {
+      outline: none;
+      border-color: var(--forest);
+      box-shadow: 0 0 0 3px rgba(45, 90, 71, 0.1);
+    }
+
+    .token-instructions {
+      margin-bottom: 1.5rem;
+      color: var(--ink-light);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 640px) {
+      .auth-container {
+        position: static;
+        justify-content: center;
+        margin-top: 1rem;
+      }
+
+      .user-name {
+        display: none;
+      }
+    }
+
     /* Animations */
     @keyframes fadeInUp {
       from {
@@ -1053,6 +1221,7 @@
 <body>
   <div class="app">
     <header>
+      <div class="auth-container" id="authContainer"></div>
       <div class="logo">
         <div class="logo-icon"></div>
         <h1>Overland</h1>
@@ -1155,8 +1324,11 @@
     let currentOffset = 0;
     let totalLocations = 0;
     let filters = { from: null, to: null };
+    let currentUser = null;
+    let newTokenValue = null;
 
     // DOM Elements
+    const authContainer = document.getElementById('authContainer');
     const heroSection = document.getElementById('heroSection');
     const locationsList = document.getElementById('locationsList');
     const locationsCount = document.getElementById('locationsCount');
@@ -1331,7 +1503,8 @@
           if (filters.from) params.append('from', filters.from);
           if (filters.to) params.append('to', filters.to);
 
-          const response = await fetch(`${API_BASE}/locations?${params}`);
+          const response = await fetch(`${API_BASE}/locations?${params}`, { credentials: 'include' });
+          if (response.status === 401) throw new Error('Unauthorized');
           if (!response.ok) throw new Error('Failed to fetch');
 
           const data = await response.json();
@@ -1359,6 +1532,194 @@
         updateMap(response.data, latestLocation);
       } else {
         mapLoading.style.display = 'none';
+      }
+    }
+
+    // Auth Functions
+    async function checkAuth() {
+      try {
+        const response = await fetch(`${API_BASE}/me`, { credentials: 'include' });
+        if (response.ok) {
+          currentUser = await response.json();
+          renderAuthUI();
+          return true;
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      }
+      currentUser = null;
+      renderAuthUI();
+      return false;
+    }
+
+    function renderAuthUI() {
+      if (currentUser) {
+        authContainer.innerHTML = `
+          <div class="user-info">
+            ${currentUser.avatarUrl ? `<img src="${currentUser.avatarUrl}" alt="" class="user-avatar">` : ''}
+            <span class="user-name">${currentUser.name || currentUser.email || 'User'}</span>
+          </div>
+          <button class="btn btn-small" id="manageTokensBtn">Tokens</button>
+          <button class="btn btn-secondary btn-small" id="logoutBtn">Logout</button>
+        `;
+        document.getElementById('manageTokensBtn').addEventListener('click', openTokenModal);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+      } else {
+        authContainer.innerHTML = `
+          <a href="/api/auth/sign-in/github" class="btn btn-login btn-small">
+            <svg class="github-icon" viewBox="0 0 16 16">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+            Login with GitHub
+          </a>
+        `;
+      }
+    }
+
+    async function handleLogout() {
+      try {
+        await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' });
+      } catch (error) {
+        console.error('Logout failed:', error);
+      }
+      currentUser = null;
+      renderAuthUI();
+      window.location.reload();
+    }
+
+    // Token Management
+    async function fetchTokens() {
+      const response = await fetch(`${API_BASE}/tokens`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch tokens');
+      return await response.json();
+    }
+
+    async function createToken(name) {
+      const response = await fetch(`${API_BASE}/tokens`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name })
+      });
+      if (!response.ok) throw new Error('Failed to create token');
+      return await response.json();
+    }
+
+    async function deleteToken(id) {
+      const response = await fetch(`${API_BASE}/tokens/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to delete token');
+    }
+
+    async function openTokenModal() {
+      modalOverlay.classList.add('active');
+      detailModal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      newTokenValue = null;
+      await renderTokenModal();
+    }
+
+    async function renderTokenModal() {
+      const modalTitle = document.querySelector('.modal-title');
+      modalTitle.textContent = 'Device Tokens';
+
+      modalBody.innerHTML = `
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          <span class="loading-text">Loading tokens...</span>
+        </div>
+      `;
+
+      try {
+        const { tokens } = await fetchTokens();
+
+        modalBody.innerHTML = `
+          <p class="token-instructions">
+            Device tokens allow the Overland iOS app to send location data to your account.
+            Create a token and enter it in the Overland app's "Authorization Header" setting as:<br>
+            <code style="background: var(--parchment-dark); padding: 0.2rem 0.4rem; border-radius: 2px;">Bearer YOUR_TOKEN</code>
+          </p>
+
+          ${newTokenValue ? `
+            <div class="token-warning">
+              <strong>Save this token now!</strong> It won't be shown again.
+            </div>
+            <div class="token-value">${newTokenValue}</div>
+            <button class="btn btn-small" id="copyTokenBtn" style="margin-bottom: 1.5rem;">Copy Token</button>
+          ` : ''}
+
+          <div class="create-token-form">
+            <input type="text" id="tokenNameInput" placeholder="Token name (e.g., iPhone)" maxlength="50">
+            <button class="btn" id="createTokenBtn">Create</button>
+          </div>
+
+          <div class="detail-section-title">Your Tokens</div>
+
+          ${tokens.length === 0 ? `
+            <p style="color: var(--ink-light); text-align: center; padding: 2rem;">
+              No device tokens yet. Create one to start tracking!
+            </p>
+          ` : `
+            <div class="token-list">
+              ${tokens.map(token => `
+                <div class="token-item">
+                  <div class="token-info">
+                    <span class="token-name">${token.name}</span>
+                    <span class="token-meta">
+                      Created ${formatTime(token.createdAt)}
+                      ${token.lastUsedAt ? ` · Last used ${formatRelativeTime(token.lastUsedAt)}` : ''}
+                    </span>
+                  </div>
+                  <button class="btn btn-danger btn-small" data-token-id="${token.id}">Revoke</button>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        `;
+
+        // Event listeners
+        document.getElementById('createTokenBtn')?.addEventListener('click', handleCreateToken);
+        document.getElementById('tokenNameInput')?.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') handleCreateToken();
+        });
+        document.getElementById('copyTokenBtn')?.addEventListener('click', () => {
+          navigator.clipboard.writeText(newTokenValue);
+          document.getElementById('copyTokenBtn').textContent = 'Copied!';
+        });
+        document.querySelectorAll('[data-token-id]').forEach(btn => {
+          btn.addEventListener('click', () => handleDeleteToken(btn.dataset.tokenId));
+        });
+      } catch (error) {
+        modalBody.innerHTML = `<div class="error-state">Failed to load tokens</div>`;
+      }
+    }
+
+    async function handleCreateToken() {
+      const input = document.getElementById('tokenNameInput');
+      const name = input.value.trim();
+      if (!name) {
+        input.focus();
+        return;
+      }
+      try {
+        const result = await createToken(name);
+        newTokenValue = result.token;
+        await renderTokenModal();
+      } catch (error) {
+        alert('Failed to create token');
+      }
+    }
+
+    async function handleDeleteToken(id) {
+      if (!confirm('Revoke this token? Devices using it will stop working.')) return;
+      try {
+        await deleteToken(id);
+        newTokenValue = null;
+        await renderTokenModal();
+      } catch (error) {
+        alert('Failed to revoke token');
       }
     }
 
@@ -1412,9 +1773,12 @@
     // Fetch latest location
     async function fetchLatestLocation() {
       try {
-        const response = await fetch(`${API_BASE}/locations/latest`);
+        const response = await fetch(`${API_BASE}/locations/latest`, { credentials: 'include' });
         if (response.status === 404) {
           return null;
+        }
+        if (response.status === 401) {
+          throw new Error('Unauthorized');
         }
         if (!response.ok) throw new Error('Failed to fetch');
         return await response.json();
@@ -1431,7 +1795,10 @@
       if (to) params.append('to', to);
 
       try {
-        const response = await fetch(`${API_BASE}/locations?${params}`);
+        const response = await fetch(`${API_BASE}/locations?${params}`, { credentials: 'include' });
+        if (response.status === 401) {
+          throw new Error('Unauthorized');
+        }
         if (!response.ok) throw new Error('Failed to fetch');
         return await response.json();
       } catch (error) {
@@ -1443,7 +1810,10 @@
     // Fetch single location
     async function fetchLocation(id) {
       try {
-        const response = await fetch(`${API_BASE}/locations/${id}`);
+        const response = await fetch(`${API_BASE}/locations/${id}`, { credentials: 'include' });
+        if (response.status === 401) {
+          throw new Error('Unauthorized');
+        }
         if (!response.ok) throw new Error('Failed to fetch');
         return await response.json();
       } catch (error) {
@@ -1770,8 +2140,61 @@
       if (e.key === 'Escape') closeModal();
     });
 
+    // Show unauthenticated state
+    function showUnauthenticated() {
+      heroSection.innerHTML = `
+        <div class="hero-empty">
+          <p>Please log in with GitHub to view your location data.</p>
+        </div>
+      `;
+      mapLoading.style.display = 'none';
+      locationsList.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🔐</div>
+          <h3 class="empty-state-title">Authentication Required</h3>
+          <p>Log in to access your location history and start tracking.</p>
+        </div>
+      `;
+      pagination.style.display = 'none';
+    }
+
+    // Handle auth callback (token passed via URL to work around Vercel rewrite cookie issues)
+    function handleAuthCallback() {
+      if (window.location.pathname === '/__auth_callback') {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        const returnTo = params.get('returnTo') || '/';
+
+        if (token) {
+          // Set the session cookie client-side
+          const maxAge = 30 * 24 * 60 * 60; // 30 days in seconds
+          document.cookie = `session=${token}; path=/; max-age=${maxAge}; SameSite=Lax`;
+        }
+
+        // Clean up URL and redirect
+        window.location.replace(returnTo);
+        return true;
+      }
+      return false;
+    }
+
     // Initialize
     async function init() {
+      // Handle auth callback first
+      if (handleAuthCallback()) {
+        return; // Will redirect, don't continue init
+      }
+
+      // Check authentication first
+      const isAuthenticated = await checkAuth();
+
+      if (!isAuthenticated) {
+        showUnauthenticated();
+        // Still initialize map for visual appeal, but don't load data
+        initMap();
+        return;
+      }
+
       // Initialize the map
       initMap();
 
