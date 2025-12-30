@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Overland | Location Journal</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --parchment: #f7f3eb;
+      --parchment-dark: #ebe5d8;
+      --ink: #2a2520;
+      --ink-light: #5c554a;
+      --terracotta: #c45a3b;
+      --terracotta-glow: #e8724f;
+      --forest: #2d5a47;
+      --forest-light: #4a8b6f;
+      --ochre: #d4a84b;
+      --shadow: rgba(42, 37, 32, 0.12);
+      --shadow-deep: rgba(42, 37, 32, 0.25);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Crimson Pro', Georgia, serif;
+      background: var(--parchment);
+      color: var(--ink);
+      min-height: 100vh;
+      line-height: 1.6;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Topographic background pattern */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        repeating-radial-gradient(
+          ellipse 800px 600px at 20% 30%,
+          transparent,
+          transparent 80px,
+          rgba(45, 90, 71, 0.03) 81px,
+          rgba(45, 90, 71, 0.03) 82px,
+          transparent 83px
+        ),
+        repeating-radial-gradient(
+          ellipse 600px 500px at 70% 60%,
+          transparent,
+          transparent 60px,
+          rgba(196, 90, 59, 0.02) 61px,
+          rgba(196, 90, 59, 0.02) 62px,
+          transparent 63px
+        ),
+        repeating-radial-gradient(
+          ellipse 400px 350px at 40% 80%,
+          transparent,
+          transparent 45px,
+          rgba(45, 90, 71, 0.025) 46px,
+          rgba(45, 90, 71, 0.025) 47px,
+          transparent 48px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Grain texture overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .app {
+      position: relative;
+      z-index: 2;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      padding: 3rem 0 4rem;
+      border-bottom: 1px solid rgba(45, 90, 71, 0.15);
+      margin-bottom: 3rem;
+      position: relative;
+    }
+
+    header::after {
+      content: '~ est. 2024 ~';
+      position: absolute;
+      bottom: -0.7rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--parchment);
+      padding: 0 1rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      color: var(--ink-light);
+      text-transform: uppercase;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      position: relative;
+    }
+
+    .logo-icon::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 2px solid var(--terracotta);
+      border-radius: 50%;
+      animation: compass-spin 20s linear infinite;
+    }
+
+    .logo-icon::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      background: var(--terracotta);
+      clip-path: polygon(50% 0%, 100% 100%, 50% 75%, 0% 100%);
+      transform: translate(-50%, -60%);
+    }
+
+    @keyframes compass-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.75rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--ink);
+    }
+
+    .tagline {
+      font-style: italic;
+      color: var(--ink-light);
+      font-size: 1.1rem;
+      margin-top: 0.25rem;
+    }
+
+    /* Latest Location Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--parchment-dark) 0%, var(--parchment) 100%);
+      border: 1px solid rgba(45, 90, 71, 0.2);
+      border-radius: 4px;
+      padding: 2.5rem;
+      margin-bottom: 3rem;
+      position: relative;
+      box-shadow:
+        0 4px 20px var(--shadow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 60px;
+      height: 60px;
+      border: 1px solid var(--forest);
+      opacity: 0.2;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--forest);
+      opacity: 0.15;
+    }
+
+    .hero-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--terracotta);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-label .pulse {
+      width: 8px;
+      height: 8px;
+      background: var(--terracotta);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    .hero-coords {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2rem;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 2rem;
+    }
+
+    .coord {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+
+    .coord-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-light);
+    }
+
+    .coord-value {
+      color: var(--forest);
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px dashed rgba(45, 90, 71, 0.2);
+      font-size: 0.95rem;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .meta-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-light);
+    }
+
+    .meta-value {
+      font-weight: 600;
+    }
+
+    .hero-empty {
+      text-align: center;
+      padding: 2rem;
+      color: var(--ink-light);
+      font-style: italic;
+    }
+
+    /* Controls Section */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-end;
+      margin-bottom: 2rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid rgba(45, 90, 71, 0.1);
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .filter-group label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-light);
+    }
+
+    .filter-group input {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      padding: 0.6rem 0.8rem;
+      border: 1px solid rgba(45, 90, 71, 0.25);
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.6);
+      color: var(--ink);
+      transition: all 0.2s ease;
+    }
+
+    .filter-group input:focus {
+      outline: none;
+      border-color: var(--forest);
+      box-shadow: 0 0 0 3px rgba(45, 90, 71, 0.1);
+    }
+
+    .btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 0.7rem 1.4rem;
+      border: 1px solid var(--forest);
+      background: transparent;
+      color: var(--forest);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--forest);
+      transform: translateY(100%);
+      transition: transform 0.25s ease;
+      z-index: -1;
+    }
+
+    .btn:hover {
+      color: var(--parchment);
+    }
+
+    .btn:hover::before {
+      transform: translateY(0);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      border-color: var(--ink-light);
+      color: var(--ink-light);
+    }
+
+    .btn-secondary::before {
+      background: var(--ink-light);
+    }
+
+    /* Location List */
+    .locations-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 1.5rem;
+    }
+
+    .locations-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+
+    .locations-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--ink-light);
+    }
+
+    .locations-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      background: rgba(45, 90, 71, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .location-card {
+      background: var(--parchment);
+      padding: 1.25rem 1.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 1.5rem;
+      align-items: center;
+      position: relative;
+    }
+
+    .location-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--terracotta);
+      transform: scaleY(0);
+      transition: transform 0.2s ease;
+    }
+
+    .location-card:hover {
+      background: var(--parchment-dark);
+    }
+
+    .location-card:hover::before {
+      transform: scaleY(1);
+    }
+
+    .location-index {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--ink-light);
+      width: 2.5rem;
+      text-align: right;
+    }
+
+    .location-main {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .location-coords {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--forest);
+    }
+
+    .location-time {
+      font-size: 0.85rem;
+      color: var(--ink-light);
+    }
+
+    .location-badges {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.25rem 0.5rem;
+      border-radius: 2px;
+      background: rgba(45, 90, 71, 0.1);
+      color: var(--forest);
+    }
+
+    .badge-motion {
+      background: rgba(196, 90, 59, 0.1);
+      color: var(--terracotta);
+    }
+
+    .location-arrow {
+      color: var(--ink-light);
+      font-size: 1.2rem;
+      opacity: 0;
+      transform: translateX(-5px);
+      transition: all 0.2s ease;
+    }
+
+    .location-card:hover .location-arrow {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(45, 90, 71, 0.1);
+    }
+
+    .pagination-info {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--ink-light);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn:disabled:hover {
+      color: inherit;
+    }
+
+    .btn:disabled::before {
+      display: none;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(42, 37, 32, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      background: var(--parchment);
+      border-radius: 4px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+      z-index: 101;
+      box-shadow: 0 25px 80px var(--shadow-deep);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .modal-header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid rgba(45, 90, 71, 0.15);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 1.5rem;
+      color: var(--ink-light);
+      transition: color 0.2s ease;
+    }
+
+    .modal-close:hover {
+      color: var(--terracotta);
+    }
+
+    .modal-body {
+      padding: 2rem;
+    }
+
+    .detail-section {
+      margin-bottom: 2rem;
+    }
+
+    .detail-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .detail-section-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--terracotta);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px dashed rgba(196, 90, 59, 0.3);
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .detail-item.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .detail-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-light);
+    }
+
+    .detail-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--forest);
+    }
+
+    .detail-value.large {
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+
+    /* Loading State */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      gap: 1rem;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 2px solid rgba(45, 90, 71, 0.2);
+      border-top-color: var(--forest);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-style: italic;
+      color: var(--ink-light);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--ink-light);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.3;
+    }
+
+    .empty-state-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
+      color: var(--ink);
+    }
+
+    /* Error State */
+    .error-state {
+      background: rgba(196, 90, 59, 0.1);
+      border: 1px solid rgba(196, 90, 59, 0.3);
+      border-radius: 4px;
+      padding: 1.5rem;
+      text-align: center;
+      color: var(--terracotta);
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-in {
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .stagger-1 { animation-delay: 0.05s; }
+    .stagger-2 { animation-delay: 0.1s; }
+    .stagger-3 { animation-delay: 0.15s; }
+    .stagger-4 { animation-delay: 0.2s; }
+    .stagger-5 { animation-delay: 0.25s; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .app {
+        padding: 1rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .hero {
+        padding: 1.5rem;
+      }
+
+      .hero-coords {
+        font-size: 1.25rem;
+      }
+
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .filter-group {
+        width: 100%;
+      }
+
+      .filter-group input {
+        width: 100%;
+      }
+
+      .location-card {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+
+      .location-index {
+        text-align: left;
+      }
+
+      .location-arrow {
+        display: none;
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="logo">
+        <div class="logo-icon"></div>
+        <h1>Overland</h1>
+      </div>
+      <p class="tagline">Your personal location journal</p>
+    </header>
+
+    <!-- Latest Location Hero -->
+    <section class="hero" id="heroSection">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <span class="loading-text">Fetching latest position...</span>
+      </div>
+    </section>
+
+    <!-- Controls -->
+    <section class="controls">
+      <div class="filter-group">
+        <label for="fromDate">From</label>
+        <input type="datetime-local" id="fromDate">
+      </div>
+      <div class="filter-group">
+        <label for="toDate">To</label>
+        <input type="datetime-local" id="toDate">
+      </div>
+      <button class="btn" id="applyFilter">Apply Filter</button>
+      <button class="btn btn-secondary" id="clearFilter">Clear</button>
+    </section>
+
+    <!-- Location History -->
+    <section class="locations-section">
+      <div class="locations-header">
+        <h2>Location History</h2>
+        <span class="locations-count" id="locationsCount"></span>
+      </div>
+      <div id="locationsList">
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          <span class="loading-text">Loading expedition log...</span>
+        </div>
+      </div>
+      <div class="pagination" id="pagination" style="display: none;">
+        <button class="btn btn-secondary" id="prevPage">Previous</button>
+        <span class="pagination-info" id="paginationInfo"></span>
+        <button class="btn btn-secondary" id="nextPage">Next</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-overlay" id="modalOverlay"></div>
+  <div class="modal" id="detailModal">
+    <div class="modal-header">
+      <h3 class="modal-title">Location Details</h3>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://overland-server.fly.dev/api';
+    const LIMIT = 20;
+
+    let currentOffset = 0;
+    let totalLocations = 0;
+    let filters = { from: null, to: null };
+
+    // DOM Elements
+    const heroSection = document.getElementById('heroSection');
+    const locationsList = document.getElementById('locationsList');
+    const locationsCount = document.getElementById('locationsCount');
+    const pagination = document.getElementById('pagination');
+    const paginationInfo = document.getElementById('paginationInfo');
+    const prevPageBtn = document.getElementById('prevPage');
+    const nextPageBtn = document.getElementById('nextPage');
+    const fromDateInput = document.getElementById('fromDate');
+    const toDateInput = document.getElementById('toDate');
+    const applyFilterBtn = document.getElementById('applyFilter');
+    const clearFilterBtn = document.getElementById('clearFilter');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const detailModal = document.getElementById('detailModal');
+    const modalClose = document.getElementById('modalClose');
+    const modalBody = document.getElementById('modalBody');
+
+    // Format coordinates
+    function formatCoord(value, isLat) {
+      const dir = isLat ? (value >= 0 ? 'N' : 'S') : (value >= 0 ? 'E' : 'W');
+      return `${Math.abs(value).toFixed(6)}° ${dir}`;
+    }
+
+    // Format timestamp
+    function formatTime(isoString) {
+      const date = new Date(isoString);
+      return date.toLocaleString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    // Format relative time
+    function formatRelativeTime(isoString) {
+      const now = new Date();
+      const date = new Date(isoString);
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins} min ago`;
+      if (diffHours < 24) return `${diffHours} hr ago`;
+      if (diffDays < 7) return `${diffDays} days ago`;
+      return formatTime(isoString);
+    }
+
+    // Fetch latest location
+    async function fetchLatestLocation() {
+      try {
+        const response = await fetch(`${API_BASE}/locations/latest`);
+        if (response.status === 404) {
+          return null;
+        }
+        if (!response.ok) throw new Error('Failed to fetch');
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching latest location:', error);
+        throw error;
+      }
+    }
+
+    // Fetch locations
+    async function fetchLocations(limit, offset, from, to) {
+      const params = new URLSearchParams({ limit, offset });
+      if (from) params.append('from', from);
+      if (to) params.append('to', to);
+
+      try {
+        const response = await fetch(`${API_BASE}/locations?${params}`);
+        if (!response.ok) throw new Error('Failed to fetch');
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching locations:', error);
+        throw error;
+      }
+    }
+
+    // Fetch single location
+    async function fetchLocation(id) {
+      try {
+        const response = await fetch(`${API_BASE}/locations/${id}`);
+        if (!response.ok) throw new Error('Failed to fetch');
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching location:', error);
+        throw error;
+      }
+    }
+
+    // Render latest location hero
+    function renderHero(location) {
+      if (!location) {
+        heroSection.innerHTML = `
+          <div class="hero-empty">
+            <p>No location data recorded yet. Start tracking with the Overland app!</p>
+          </div>
+        `;
+        return;
+      }
+
+      const { latitude, longitude, timestamp, altitude, speed, battery, motion } = location;
+
+      heroSection.innerHTML = `
+        <div class="hero-label">
+          <span class="pulse"></span>
+          Last Known Position
+        </div>
+        <div class="hero-coords animate-in">
+          <div class="coord">
+            <span class="coord-label">Lat</span>
+            <span class="coord-value">${formatCoord(latitude, true)}</span>
+          </div>
+          <div class="coord">
+            <span class="coord-label">Lon</span>
+            <span class="coord-value">${formatCoord(longitude, false)}</span>
+          </div>
+        </div>
+        <div class="hero-meta animate-in stagger-1">
+          <div class="meta-item">
+            <span class="meta-label">Recorded</span>
+            <span class="meta-value">${formatRelativeTime(timestamp)}</span>
+          </div>
+          ${altitude != null ? `
+            <div class="meta-item">
+              <span class="meta-label">Altitude</span>
+              <span class="meta-value">${altitude.toFixed(1)} m</span>
+            </div>
+          ` : ''}
+          ${speed != null ? `
+            <div class="meta-item">
+              <span class="meta-label">Speed</span>
+              <span class="meta-value">${(speed * 3.6).toFixed(1)} km/h</span>
+            </div>
+          ` : ''}
+          ${battery != null ? `
+            <div class="meta-item">
+              <span class="meta-label">Battery</span>
+              <span class="meta-value">${Math.round(battery * 100)}%</span>
+            </div>
+          ` : ''}
+          ${motion && motion.length ? `
+            <div class="meta-item">
+              <span class="meta-label">Motion</span>
+              <span class="meta-value">${motion.join(', ')}</span>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // Render location list
+    function renderLocations(data) {
+      const { locations, total, hasMore } = data;
+      totalLocations = total;
+
+      if (!locations || locations.length === 0) {
+        locationsList.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📍</div>
+            <h3 class="empty-state-title">No locations found</h3>
+            <p>Try adjusting your date filters or start recording with Overland.</p>
+          </div>
+        `;
+        pagination.style.display = 'none';
+        locationsCount.textContent = '';
+        return;
+      }
+
+      locationsCount.textContent = `${total} locations recorded`;
+
+      locationsList.innerHTML = `
+        <div class="locations-list">
+          ${locations.map((loc, i) => `
+            <div class="location-card animate-in stagger-${Math.min(i + 1, 5)}" data-id="${loc.id}">
+              <span class="location-index">#${loc.id}</span>
+              <div class="location-main">
+                <div class="location-coords">
+                  ${formatCoord(loc.latitude, true)}, ${formatCoord(loc.longitude, false)}
+                </div>
+                <div class="location-time">${formatTime(loc.timestamp)}</div>
+              </div>
+              <div class="location-badges">
+                ${loc.speed != null ? `<span class="badge">${(loc.speed * 3.6).toFixed(0)} km/h</span>` : ''}
+                ${loc.motion && loc.motion.length ? `<span class="badge badge-motion">${loc.motion[0]}</span>` : ''}
+              </div>
+              <span class="location-arrow">→</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      // Pagination
+      const start = currentOffset + 1;
+      const end = Math.min(currentOffset + LIMIT, total);
+      paginationInfo.textContent = `${start}-${end} of ${total}`;
+
+      prevPageBtn.disabled = currentOffset === 0;
+      nextPageBtn.disabled = !hasMore;
+      pagination.style.display = 'flex';
+
+      // Add click listeners
+      document.querySelectorAll('.location-card').forEach(card => {
+        card.addEventListener('click', () => openDetailModal(card.dataset.id));
+      });
+    }
+
+    // Render error state
+    function renderError(element, message) {
+      element.innerHTML = `
+        <div class="error-state">
+          <p>${message}</p>
+          <button class="btn" style="margin-top: 1rem" onclick="location.reload()">Retry</button>
+        </div>
+      `;
+    }
+
+    // Open detail modal
+    async function openDetailModal(id) {
+      modalOverlay.classList.add('active');
+      detailModal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+
+      modalBody.innerHTML = `
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          <span class="loading-text">Loading details...</span>
+        </div>
+      `;
+
+      try {
+        const location = await fetchLocation(id);
+        renderModalContent(location);
+      } catch (error) {
+        modalBody.innerHTML = `<div class="error-state">Failed to load location details</div>`;
+      }
+    }
+
+    // Render modal content
+    function renderModalContent(loc) {
+      modalBody.innerHTML = `
+        <div class="detail-section">
+          <div class="detail-section-title">Coordinates</div>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Latitude</span>
+              <span class="detail-value large">${formatCoord(loc.latitude, true)}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Longitude</span>
+              <span class="detail-value large">${formatCoord(loc.longitude, false)}</span>
+            </div>
+            <div class="detail-item full-width">
+              <span class="detail-label">Timestamp</span>
+              <span class="detail-value">${formatTime(loc.timestamp)}</span>
+            </div>
+          </div>
+        </div>
+
+        ${loc.altitude != null || loc.speed != null || loc.heading != null ? `
+          <div class="detail-section">
+            <div class="detail-section-title">Movement</div>
+            <div class="detail-grid">
+              ${loc.altitude != null ? `
+                <div class="detail-item">
+                  <span class="detail-label">Altitude</span>
+                  <span class="detail-value">${loc.altitude.toFixed(1)} m</span>
+                </div>
+              ` : ''}
+              ${loc.speed != null ? `
+                <div class="detail-item">
+                  <span class="detail-label">Speed</span>
+                  <span class="detail-value">${(loc.speed * 3.6).toFixed(1)} km/h (${loc.speed.toFixed(2)} m/s)</span>
+                </div>
+              ` : ''}
+              ${loc.heading != null ? `
+                <div class="detail-item">
+                  <span class="detail-label">Heading</span>
+                  <span class="detail-value">${loc.heading.toFixed(0)}°</span>
+                </div>
+              ` : ''}
+              ${loc.motion && loc.motion.length ? `
+                <div class="detail-item">
+                  <span class="detail-label">Motion States</span>
+                  <span class="detail-value">${loc.motion.join(', ')}</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        ` : ''}
+
+        ${loc.horizontalAccuracy != null || loc.verticalAccuracy != null ? `
+          <div class="detail-section">
+            <div class="detail-section-title">Accuracy</div>
+            <div class="detail-grid">
+              ${loc.horizontalAccuracy != null ? `
+                <div class="detail-item">
+                  <span class="detail-label">Horizontal</span>
+                  <span class="detail-value">± ${loc.horizontalAccuracy.toFixed(1)} m</span>
+                </div>
+              ` : ''}
+              ${loc.verticalAccuracy != null ? `
+                <div class="detail-item">
+                  <span class="detail-label">Vertical</span>
+                  <span class="detail-value">± ${loc.verticalAccuracy.toFixed(1)} m</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        ` : ''}
+
+        ${loc.battery != null || loc.wifi != null ? `
+          <div class="detail-section">
+            <div class="detail-section-title">Device Status</div>
+            <div class="detail-grid">
+              ${loc.battery != null ? `
+                <div class="detail-item">
+                  <span class="detail-label">Battery Level</span>
+                  <span class="detail-value">${Math.round(loc.battery * 100)}%</span>
+                </div>
+              ` : ''}
+              ${loc.wifi != null ? `
+                <div class="detail-item">
+                  <span class="detail-label">WiFi Connected</span>
+                  <span class="detail-value">${loc.wifi ? 'Yes' : 'No'}</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="detail-section">
+          <div class="detail-section-title">Record Info</div>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">ID</span>
+              <span class="detail-value">${loc.id}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Created At</span>
+              <span class="detail-value">${formatTime(loc.createdAt)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Close modal
+    function closeModal() {
+      modalOverlay.classList.remove('active');
+      detailModal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    // Load locations with current filters
+    async function loadLocations() {
+      locationsList.innerHTML = `
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          <span class="loading-text">Loading expedition log...</span>
+        </div>
+      `;
+      pagination.style.display = 'none';
+
+      try {
+        const data = await fetchLocations(LIMIT, currentOffset, filters.from, filters.to);
+        renderLocations(data);
+      } catch (error) {
+        renderError(locationsList, 'Failed to load location history. Please try again.');
+      }
+    }
+
+    // Event Listeners
+    prevPageBtn.addEventListener('click', () => {
+      currentOffset = Math.max(0, currentOffset - LIMIT);
+      loadLocations();
+    });
+
+    nextPageBtn.addEventListener('click', () => {
+      currentOffset += LIMIT;
+      loadLocations();
+    });
+
+    applyFilterBtn.addEventListener('click', () => {
+      filters.from = fromDateInput.value ? new Date(fromDateInput.value).toISOString() : null;
+      filters.to = toDateInput.value ? new Date(toDateInput.value).toISOString() : null;
+      currentOffset = 0;
+      loadLocations();
+    });
+
+    clearFilterBtn.addEventListener('click', () => {
+      fromDateInput.value = '';
+      toDateInput.value = '';
+      filters = { from: null, to: null };
+      currentOffset = 0;
+      loadLocations();
+    });
+
+    modalClose.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', closeModal);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    // Initialize
+    async function init() {
+      // Fetch latest location
+      try {
+        const latest = await fetchLatestLocation();
+        renderHero(latest);
+      } catch (error) {
+        renderError(heroSection, 'Failed to fetch latest location');
+      }
+
+      // Fetch location history
+      loadLocations();
+    }
+
+    init();
+  </script>
+</body>
+</html>
