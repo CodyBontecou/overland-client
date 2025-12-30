@@ -3,14 +3,6 @@
     {
       "source": "/api/:path*",
       "destination": "https://overland-server.fly.dev/api/:path*"
-    },
-    {
-      "source": "/auth/:path*",
-      "destination": "https://overland-server.fly.dev/auth/:path*"
-    },
-    {
-      "source": "/__auth_callback",
-      "destination": "/index.html"
     }
   ]
 }
