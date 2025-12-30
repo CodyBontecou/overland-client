@@ -2184,9 +2184,9 @@
         const returnTo = params.get('returnTo') || '/';
 
         if (token) {
-          // Set the session cookie client-side
+          // Set the session cookie client-side (Better Auth cookie name)
           const maxAge = 30 * 24 * 60 * 60; // 30 days in seconds
-          document.cookie = `session=${token}; path=/; max-age=${maxAge}; SameSite=Lax`;
+          document.cookie = `overland.session_token=${token}; path=/; max-age=${maxAge}; SameSite=Lax`;
         }
 
         // Clean up URL and redirect
