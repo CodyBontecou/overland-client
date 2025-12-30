@@ -1039,8 +1039,9 @@
     }
 
     // Render location list
-    function renderLocations(data) {
-      const { locations, total, hasMore } = data;
+    function renderLocations(response) {
+      const locations = response.data;
+      const { total, hasMore } = response.pagination;
       totalLocations = total;
 
       if (!locations || locations.length === 0) {
