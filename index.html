@@ -1583,7 +1583,10 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ provider: 'github' })
+          body: JSON.stringify({
+            provider: 'github',
+            callbackURL: window.location.origin + '/'
+          })
         });
         const data = await response.json();
         if (data.url) {
