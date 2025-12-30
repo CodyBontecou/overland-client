@@ -10,6 +10,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
 
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
   <style>
     :root {
       --parchment: #f7f3eb;
@@ -797,6 +801,253 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* Expedition Map */
+    .map-section {
+      margin-bottom: 3rem;
+    }
+
+    .map-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 1rem;
+    }
+
+    .map-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+
+    .map-stats {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--ink-light);
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .map-container {
+      position: relative;
+      height: 450px;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow:
+        0 4px 20px var(--shadow),
+        inset 0 0 0 1px rgba(45, 90, 71, 0.2);
+    }
+
+    /* Decorative map frame corners */
+    .map-container::before,
+    .map-container::after {
+      content: '';
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border: 2px solid var(--terracotta);
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .map-container::before {
+      top: 12px;
+      left: 12px;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    .map-container::after {
+      bottom: 12px;
+      right: 12px;
+      border-left: none;
+      border-top: none;
+    }
+
+    .map-frame-tr,
+    .map-frame-bl {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border: 2px solid var(--terracotta);
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .map-frame-tr {
+      top: 12px;
+      right: 12px;
+      border-left: none;
+      border-bottom: none;
+    }
+
+    .map-frame-bl {
+      bottom: 12px;
+      left: 12px;
+      border-right: none;
+      border-top: none;
+    }
+
+    #expeditionMap {
+      height: 100%;
+      width: 100%;
+      background: var(--parchment-dark);
+    }
+
+    /* Sepia filter for vintage map look */
+    .leaflet-tile-pane {
+      filter: sepia(0.15) saturate(0.9) brightness(1.02);
+    }
+
+    /* Custom Leaflet popup styling */
+    .leaflet-popup-content-wrapper {
+      background: var(--parchment);
+      border-radius: 4px;
+      box-shadow: 0 4px 20px var(--shadow-deep);
+      border: 1px solid rgba(45, 90, 71, 0.2);
+    }
+
+    .leaflet-popup-content {
+      font-family: 'Crimson Pro', Georgia, serif;
+      color: var(--ink);
+      margin: 12px 16px;
+      line-height: 1.5;
+    }
+
+    .leaflet-popup-tip {
+      background: var(--parchment);
+      border: 1px solid rgba(45, 90, 71, 0.2);
+      border-top: none;
+      border-left: none;
+    }
+
+    .popup-content {
+      min-width: 180px;
+    }
+
+    .popup-coords {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--forest);
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .popup-time {
+      font-size: 0.9rem;
+      color: var(--ink-light);
+      border-top: 1px dashed rgba(45, 90, 71, 0.2);
+      padding-top: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .popup-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--ink-light);
+      margin-top: 0.5rem;
+    }
+
+    /* Leaflet control overrides */
+    .leaflet-control-zoom {
+      border: 1px solid rgba(45, 90, 71, 0.3) !important;
+      border-radius: 4px !important;
+      overflow: hidden;
+    }
+
+    .leaflet-control-zoom a {
+      background: var(--parchment) !important;
+      color: var(--forest) !important;
+      border-color: rgba(45, 90, 71, 0.2) !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      transition: all 0.2s ease;
+    }
+
+    .leaflet-control-zoom a:hover {
+      background: var(--forest) !important;
+      color: var(--parchment) !important;
+    }
+
+    .leaflet-control-attribution {
+      background: rgba(247, 243, 235, 0.85) !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 0.6rem !important;
+      color: var(--ink-light) !important;
+    }
+
+    .map-legend {
+      position: absolute;
+      bottom: 40px;
+      left: 12px;
+      z-index: 1000;
+      background: rgba(247, 243, 235, 0.95);
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      border: 1px solid rgba(45, 90, 71, 0.2);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-light);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid var(--terracotta);
+      background: var(--parchment);
+    }
+
+    .legend-dot.current {
+      background: var(--terracotta);
+      box-shadow: 0 0 0 3px rgba(196, 90, 59, 0.3);
+    }
+
+    .legend-line {
+      width: 20px;
+      height: 3px;
+      background: var(--forest);
+      opacity: 0.7;
+      border-radius: 2px;
+    }
+
+    .map-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--parchment-dark);
+      z-index: 500;
+    }
+
+    @media (max-width: 640px) {
+      .map-container {
+        height: 350px;
+      }
+
+      .map-stats {
+        display: none;
+      }
+
+      .map-legend {
+        bottom: 30px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.6rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -814,6 +1065,42 @@
       <div class="loading">
         <div class="loading-spinner"></div>
         <span class="loading-text">Fetching latest position...</span>
+      </div>
+    </section>
+
+    <!-- Expedition Map -->
+    <section class="map-section">
+      <div class="map-header">
+        <h2>Expedition Map</h2>
+        <div class="map-stats">
+          <span id="mapPointCount">— points plotted</span>
+          <span id="mapDateRange">—</span>
+        </div>
+      </div>
+      <div class="map-container">
+        <div class="map-frame-tr"></div>
+        <div class="map-frame-bl"></div>
+        <div id="expeditionMap"></div>
+        <div class="map-legend">
+          <div class="legend-item">
+            <span class="legend-dot current"></span>
+            <span>Latest position</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot"></span>
+            <span>Recorded point</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-line"></span>
+            <span>Travel path</span>
+          </div>
+        </div>
+        <div class="map-loading" id="mapLoading">
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            <span class="loading-text">Charting coordinates...</span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -885,6 +1172,177 @@
     const detailModal = document.getElementById('detailModal');
     const modalClose = document.getElementById('modalClose');
     const modalBody = document.getElementById('modalBody');
+    const mapLoading = document.getElementById('mapLoading');
+    const mapPointCount = document.getElementById('mapPointCount');
+    const mapDateRange = document.getElementById('mapDateRange');
+
+    // Map state
+    let expeditionMap = null;
+    let mapMarkers = [];
+    let pathLine = null;
+    let currentMarker = null;
+
+    // Initialize map
+    function initMap() {
+      expeditionMap = L.map('expeditionMap', {
+        zoomControl: true,
+        scrollWheelZoom: true
+      }).setView([40.7128, -74.0060], 12);
+
+      // Stadia Stamen Toner Lite - clean vintage aesthetic
+      L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png', {
+        maxZoom: 20,
+        attribution: '&copy; <a href="https://stadiamaps.com/">Stadia</a> &copy; <a href="https://stamen.com/">Stamen</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+      }).addTo(expeditionMap);
+    }
+
+    // Create custom marker icon
+    function createMarkerIcon(isCurrent = false) {
+      const size = isCurrent ? 16 : 10;
+      const className = isCurrent ? 'current-marker' : 'path-marker';
+
+      return L.divIcon({
+        className: className,
+        html: `<div style="
+          width: ${size}px;
+          height: ${size}px;
+          background: ${isCurrent ? '#c45a3b' : '#f7f3eb'};
+          border: 2px solid #c45a3b;
+          border-radius: 50%;
+          box-shadow: ${isCurrent ? '0 0 0 4px rgba(196, 90, 59, 0.3), 0 2px 8px rgba(0,0,0,0.2)' : '0 2px 6px rgba(0,0,0,0.15)'};
+          ${isCurrent ? 'animation: pulse 2s ease-in-out infinite;' : ''}
+        "></div>`,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        popupAnchor: [0, -size / 2 - 4]
+      });
+    }
+
+    // Format date for display
+    function formatMapDate(isoString) {
+      const date = new Date(isoString);
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+
+    // Update map with locations
+    function updateMap(locations, isLatest = null) {
+      if (!expeditionMap) return;
+
+      // Clear existing markers and path
+      mapMarkers.forEach(m => m.remove());
+      mapMarkers = [];
+      if (pathLine) pathLine.remove();
+      if (currentMarker) currentMarker.remove();
+
+      if (!locations || locations.length === 0) {
+        mapLoading.style.display = 'none';
+        mapPointCount.textContent = '0 points plotted';
+        mapDateRange.textContent = '';
+        return;
+      }
+
+      // Sort by timestamp (oldest first for path drawing)
+      const sortedLocs = [...locations].sort((a, b) =>
+        new Date(a.timestamp) - new Date(b.timestamp)
+      );
+
+      // Create path coordinates
+      const pathCoords = sortedLocs.map(loc => [loc.latitude, loc.longitude]);
+
+      // Draw the travel path
+      pathLine = L.polyline(pathCoords, {
+        color: '#2d5a47',
+        weight: 3,
+        opacity: 0.6,
+        smoothFactor: 1,
+        lineCap: 'round',
+        lineJoin: 'round',
+        dashArray: '8, 4'
+      }).addTo(expeditionMap);
+
+      // Add markers for each location (sample to avoid overcrowding)
+      const markerInterval = Math.max(1, Math.floor(sortedLocs.length / 50));
+
+      sortedLocs.forEach((loc, index) => {
+        // Only add markers at intervals, plus first and last
+        if (index !== 0 && index !== sortedLocs.length - 1 && index % markerInterval !== 0) {
+          return;
+        }
+
+        const isCurrentPos = isLatest && loc.id === isLatest.id;
+        const marker = L.marker([loc.latitude, loc.longitude], {
+          icon: createMarkerIcon(isCurrentPos)
+        });
+
+        const popupContent = `
+          <div class="popup-content">
+            <div class="popup-coords">${formatCoord(loc.latitude, true)}, ${formatCoord(loc.longitude, false)}</div>
+            <div class="popup-time">${formatTime(loc.timestamp)}</div>
+            ${loc.speed != null ? `<div class="popup-meta">Speed: ${(loc.speed * 3.6).toFixed(1)} km/h</div>` : ''}
+            ${loc.altitude != null ? `<div class="popup-meta">Alt: ${loc.altitude.toFixed(0)} m</div>` : ''}
+          </div>
+        `;
+
+        marker.bindPopup(popupContent);
+        marker.addTo(expeditionMap);
+
+        if (isCurrentPos) {
+          currentMarker = marker;
+        } else {
+          mapMarkers.push(marker);
+        }
+      });
+
+      // Fit map to show all points
+      if (pathCoords.length > 0) {
+        const bounds = L.latLngBounds(pathCoords);
+        expeditionMap.fitBounds(bounds, { padding: [50, 50] });
+      }
+
+      // Update stats
+      mapPointCount.textContent = `${locations.length} points plotted`;
+
+      if (sortedLocs.length > 1) {
+        const oldest = formatMapDate(sortedLocs[0].timestamp);
+        const newest = formatMapDate(sortedLocs[sortedLocs.length - 1].timestamp);
+        mapDateRange.textContent = oldest === newest ? oldest : `${oldest} — ${newest}`;
+      } else if (sortedLocs.length === 1) {
+        mapDateRange.textContent = formatMapDate(sortedLocs[0].timestamp);
+      }
+
+      mapLoading.style.display = 'none';
+    }
+
+    // Fetch all locations for map (larger limit)
+    async function fetchMapLocations() {
+      const params = new URLSearchParams({ limit: 500, offset: 0 });
+      if (filters.from) params.append('from', filters.from);
+      if (filters.to) params.append('to', filters.to);
+
+      try {
+        const response = await fetch(`${API_BASE}/locations?${params}`);
+        if (!response.ok) throw new Error('Failed to fetch');
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching map locations:', error);
+        return null;
+      }
+    }
+
+    // Load map data
+    async function loadMapData(latestLocation = null) {
+      mapLoading.style.display = 'flex';
+      const response = await fetchMapLocations();
+      if (response && response.data) {
+        updateMap(response.data, latestLocation);
+      } else {
+        mapLoading.style.display = 'none';
+      }
+    }
 
     // Format coordinates
     function formatCoord(value, isLat) {
@@ -1276,6 +1734,7 @@
       filters.to = toDateInput.value ? new Date(toDateInput.value).toISOString() : null;
       currentOffset = 0;
       loadLocations();
+      loadMapData();
     });
 
     clearFilterBtn.addEventListener('click', () => {
@@ -1284,6 +1743,7 @@
       filters = { from: null, to: null };
       currentOffset = 0;
       loadLocations();
+      loadMapData();
     });
 
     modalClose.addEventListener('click', closeModal);
@@ -1294,13 +1754,20 @@
 
     // Initialize
     async function init() {
+      // Initialize the map
+      initMap();
+
       // Fetch latest location
+      let latestLocation = null;
       try {
-        const latest = await fetchLatestLocation();
-        renderHero(latest);
+        latestLocation = await fetchLatestLocation();
+        renderHero(latestLocation);
       } catch (error) {
         renderError(heroSection, 'Failed to fetch latest location');
       }
+
+      // Load map data with latest location marker
+      loadMapData(latestLocation);
 
       // Fetch location history
       loadLocations();
