@@ -976,7 +976,7 @@
         return;
       }
 
-      const { latitude, longitude, timestamp, altitude, speed, battery, motion } = location;
+      const { latitude, longitude, timestamp, altitude, speed, batteryLevel, motion } = location;
 
       heroSection.innerHTML = `
         <div class="hero-label">
@@ -1010,10 +1010,10 @@
               <span class="meta-value">${(speed * 3.6).toFixed(1)} km/h</span>
             </div>
           ` : ''}
-          ${battery != null ? `
+          ${batteryLevel != null ? `
             <div class="meta-item">
               <span class="meta-label">Battery</span>
-              <span class="meta-value">${Math.round(battery * 100)}%</span>
+              <span class="meta-value">${Math.round(batteryLevel * 100)}%</span>
             </div>
           ` : ''}
           ${motion && motion.length ? `
@@ -1186,14 +1186,14 @@
           </div>
         ` : ''}
 
-        ${loc.battery != null || loc.wifi != null ? `
+        ${loc.batteryLevel != null || loc.wifi != null ? `
           <div class="detail-section">
             <div class="detail-section-title">Device Status</div>
             <div class="detail-grid">
-              ${loc.battery != null ? `
+              ${loc.batteryLevel != null ? `
                 <div class="detail-item">
                   <span class="detail-label">Battery Level</span>
-                  <span class="detail-value">${Math.round(loc.battery * 100)}%</span>
+                  <span class="detail-value">${Math.round(loc.batteryLevel * 100)}%</span>
                 </div>
               ` : ''}
               ${loc.wifi != null ? `
